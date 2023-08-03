@@ -30,6 +30,8 @@ def get_args_parser():
     # ========= Model related
     parser.add_argument('--gpt_type',default='tiny',type=str,
                         help='what type of gpt2 we use, tiny, small, standard')
+
+    # ========= Data related
     parser.add_argument('--train_data', default='tasks_train_simple',type=str,
                         help='txt file used during training')
     parser.add_argument('--eval_data', default='tasks_test_simple',type=str,
@@ -38,13 +40,13 @@ def get_args_parser():
     # ========= IL setting
     parser.add_argument('--init_strategy', type=str, default='nil',
                     help='How to generate new student, nil or mile')
-    parser.add_argument('--generations', type=int, default=10,
+    parser.add_argument('--generations', type=int, default=1,
                         help='number of generations')
     
     # ========= Training
     parser.add_argument('--eval_interval', type=int, default=500,
                     help='The number of updates for interaction phase, train set has >16k samples') 
-    parser.add_argument('--int_rounds', type=int, default=1000,
+    parser.add_argument('--int_rounds', type=int, default=50000,
                     help='The number of updates for interaction phase, train set has >16k samples')
     parser.add_argument('--dis_rounds', type=int, default=1000,
                     help='The number of updates for imitation phase, train set has >16k samples')
@@ -64,7 +66,7 @@ def get_args_parser():
                         help='Whether save the model in the save-path') 
     parser.add_argument('--save_every_steps', default=10000, type=int,
                         help='gap between different savings')     
-    parser.add_argument('--run_name',default='test',type=str)
+    parser.add_argument('--run_name',default='baseline_tiny',type=str)
     parser.add_argument('--proj_name',default='P5_iICL_toy', type=str)
     return parser
 
@@ -135,7 +137,6 @@ def evaluate(args, model):
     acc = AverageMeter()
     model.eval()
     N = _get_data_size(args.eval_data)
-    N = 100
     for i in tqdm(range(N)):
         x, split_idx = sample_dataset_line(file_name=args.eval_data, idx=i)
         x = x.to(args.device)
@@ -193,7 +194,6 @@ if __name__ == "__main__":
     EOS_TENSOR = torch.tensor([23]).to(args.device)
     main(args)
 
-    
     """ 
     model = build_model(args)
     optimizer_int = torch.optim.Adam(model.parameters(), lr=args.lr)
