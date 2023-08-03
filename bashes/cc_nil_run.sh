@@ -1,9 +1,9 @@
 #!/bin/bash
-#SBATCH --account=def-dsuth
+#SBATCH --account=rrg-dsuth
 #SBATCH --gres=gpu:1              # Number of GPU(s) per node
-#SBATCH --cpus-per-task=8         # CPU cores/threads
+#SBATCH --cpus-per-task=4         # CPU cores/threads
 #SBATCH --mem=32000M               # memory per node
-#SBATCH --time=1-00:00            # time (DD-HH:MM)
+#SBATCH --time=0-00:00            # time (DD-HH:MM)
 #SBATCH --output=./logs/stage1.txt 
 
 
@@ -20,7 +20,6 @@ source /home/joshua52/projects/def-dsuth/joshua52/env_icl/bin/activate
 #    and look for the dataset into $SLURM_TMPDIR
 
 cd /home/joshua52/projects/def-dsuth/joshua52/GPT2_SCAN
-
 
 srun python /home/joshua52/projects/def-dsuth/joshua52/GPT2_SCAN/train.py \
 --config_file nil

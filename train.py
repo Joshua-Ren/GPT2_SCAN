@@ -38,35 +38,36 @@ def get_args_parser():
                         help='txt file used during training')
     
     # ========= IL setting
-    parser.add_argument('--init_strategy', type=str, default='nil',
+    parser.add_argument('--init_strategy', type=str, default='mile',
                     help='How to generate new student, nil or mile')
-    parser.add_argument('--generations', type=int, default=1,
+    parser.add_argument('--generations', type=int, default=5,
                         help='number of generations')
     
     # ========= Training
     parser.add_argument('--eval_interval', type=int, default=500,
                     help='The number of updates for interaction phase, train set has >16k samples') 
-    parser.add_argument('--int_rounds', type=int, default=50000,
+    parser.add_argument('--int_rounds', type=int, default=10000,
                     help='The number of updates for interaction phase, train set has >16k samples')
-    parser.add_argument('--dis_rounds', type=int, default=1000,
+    parser.add_argument('--dis_rounds', type=int, default=500,
                     help='The number of updates for imitation phase, train set has >16k samples')
     parser.add_argument('--dis_loss', type=str, default='ce_argmax',
                     help='how the teacher generate the samples, ce_argmax, ce_sample, noisy_ce_sample, mse')
-    parser.add_argument('--s_ratio', type=int, default=0.6,
+    parser.add_argument('--s_ratio', type=int, default=0.1,
                     help='Split ratio of the training set, sup/unsup')    
-    parser.add_argument('--dis_lr', default=1e-4, type=float,
+    parser.add_argument('--int_lr', default=1e-3, type=float,
+                        help='the learning rate for training') 
+    parser.add_argument('--dis_lr', default=3e-5, type=float,
                         help='the learning rate for training')
-    parser.add_argument('--int_lr', default=1e-4, type=float,
-                        help='the learning rate for training')  
+ 
     
-    # ===== Wandb and saving results ====
+    # ===== Wandb and saving results ==== 
     parser.add_argument('--WD_ID',default='joshuaren', type=str,
-                        help='W&D ID, joshuaren or joshua_shawn')
+                        help='W&D ID, joshuaren or joshua_shawn, or none')
     parser.add_argument('--save_model', default=False, type=eval, 
                         help='Whether save the model in the save-path') 
     parser.add_argument('--save_every_steps', default=10000, type=int,
                         help='gap between different savings')     
-    parser.add_argument('--run_name',default='baseline_tiny',type=str)
+    parser.add_argument('--run_name',default='mile_tiny',type=str)
     parser.add_argument('--proj_name',default='P5_iICL_toy', type=str)
     return parser
 
@@ -98,10 +99,12 @@ def interaction_phase(args, model, optimizer):
         optimizer.step()
         if i % args.eval_interval==0:
             evaluate(args, model)
-            print("Loss is %.4f, acc is %.4f"%(loss.data.item(),part_acc))
-        wandb.log({'Inter_loss':loss.data.item()})
-        wandb.log({'Train_pacc':part_acc})
-        wandb.log({'Train_acc':acc})
+        if args.WD_ID=='none':
+            print("At round %d, Loss is %.4f, acc is %.4f"%(i, loss.data.item(),part_acc))            
+        else:
+            wandb.log({'Inter_loss':loss.data.item()})
+            wandb.log({'Train_pacc':part_acc})
+            wandb.log({'Train_acc':acc})
 
 def imitation_phase(args, student, teacher, optimizer):
     teacher.eval()
@@ -109,7 +112,7 @@ def imitation_phase(args, student, teacher, optimizer):
     for i in tqdm(range(args.dis_rounds)):
         x, split_idx = sample_dataset_line(file_name=args.train_data, 
                                            sup_ratio=args.s_ratio, 
-                                           sup_or_unsup="unsup")
+                                           sup_or_unsup="sup")
         x = x.to(args.device)
         oht_x = F.one_hot(x, num_classes=24).float()
         teach_logits = teacher(oht_x)
@@ -130,13 +133,17 @@ def imitation_phase(args, student, teacher, optimizer):
             loss = nn.CrossEntropyLoss()(stud_logits, teach_label)
         loss.backward()
         optimizer.step()
-        wandb.log({'Distil_loss':loss.data.item()})
-
+        if args.WD_ID=='none':
+            print("At round %d, Loss is %.4f, acc is %.4f"%(i, loss.data.item(),part_acc))   
+        else:
+            wandb.log({'Distil_loss':loss.data.item()})
+        
 def evaluate(args, model):
     part_acc = AverageMeter()
     acc = AverageMeter()
     model.eval()
     N = _get_data_size(args.eval_data)
+    N = 100
     for i in tqdm(range(N)):
         x, split_idx = sample_dataset_line(file_name=args.eval_data, idx=i)
         x = x.to(args.device)
@@ -146,9 +153,11 @@ def evaluate(args, model):
         tmp_part, tmp_acc = get_acc(out_logi, y, split_idx)
         part_acc.update(tmp_part)
         acc.update(tmp_acc)
-    #print("PACC is %.4f, ACC is %.4f"%(part_acc.avg, acc.avg))
-    wandb.log({"Eval_pacc": part_acc.avg})
-    wandb.log({"Eval_acc": acc.avg})
+    if args.WD_ID=='none':
+        print("PACC is %.4f, ACC is %.4f"%(part_acc.avg, acc.avg))
+    else:
+        wandb.log({"Eval_pacc": part_acc.avg})
+        wandb.log({"Eval_acc": acc.avg})
     model.train()
     return part_acc.avg, acc.avg
         
@@ -158,7 +167,10 @@ def main(args):
         args.seed = np.random.randint(1,10086)
     rnd_seed(args.seed)    
     # ========== Prepare save folder and wandb ==========
-    wandb_init(proj_name=args.proj_name, run_name=args.run_name, config_args=args) 
+    if args.WD_ID!='none':
+        wandb_init(proj_name=args.proj_name, run_name=args.run_name, config_args=args)
+    
+    
     gens_valid_roc, gens_test_roc = [], []
     for gen in range(args.generations):
         # =========== Step0: new agent
@@ -181,7 +193,8 @@ def main(args):
         # =========== Step2: interaction
         interaction_phase(args, student, optimizer_int)
         teacher = copy.deepcopy(student)
-    wandb.finish()
+    if args.WD_ID!='none':
+        wandb.finish()
 
 
 if __name__ == "__main__":

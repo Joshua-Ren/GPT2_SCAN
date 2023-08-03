@@ -3,9 +3,10 @@
 proj_name = "P5_iICL_toy"
 
 # ==== Model related
-gpt_type = "standard"
+gpt_type = "tiny"
 
 # ========= Data related
+s_ratio = 0.6
 train_data = "tasks_train_simple"
 eval_data = "tasks_test_simple"
 
@@ -17,9 +18,9 @@ generations = 20
 eval_interval = 500
 int_rounds = 5000
 dis_rounds = 1000
-dis_loss = "ce_sample"
+dis_loss = "ce_argmax"
+int_lr = 0.001
 dis_lr = 0.0001
-int_lr = 0.0001
 
 
-run_name = "nil_try"
+run_name = "nil_argmax"

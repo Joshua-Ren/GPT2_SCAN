@@ -15,6 +15,12 @@ def update_args(args, config):
         args.__dict__[k] = config[k]
     return args
 
+def printboth(text, file):
+    print(text)
+    with open(file, "a") as f:
+        f.write(text)
+        f.write("\n")
+
 # ============== Wandb =======================
 def wandb_init(proj_name='test', run_name=None, config_args=None, entity="joshuaren"):
     if config_args is not None:
