@@ -40,7 +40,7 @@ def get_args_parser():
     # ========= IL setting
     parser.add_argument('--init_strategy', type=str, default='mile',
                     help='How to generate new student, nil or mile')
-    parser.add_argument('--generations', type=int, default=5,
+    parser.add_argument('--generations', type=int, default=7,
                         help='number of generations')
     
     # ========= Training
@@ -50,13 +50,13 @@ def get_args_parser():
                     help='The number of updates for interaction phase, train set has >16k samples')
     parser.add_argument('--dis_rounds', type=int, default=500,
                     help='The number of updates for imitation phase, train set has >16k samples')
-    parser.add_argument('--dis_loss', type=str, default='ce_argmax',
+    parser.add_argument('--dis_loss', type=str, default='ce_sample',
                     help='how the teacher generate the samples, ce_argmax, ce_sample, noisy_ce_sample, mse')
     parser.add_argument('--s_ratio', type=int, default=0.1,
                     help='Split ratio of the training set, sup/unsup')    
     parser.add_argument('--int_lr', default=1e-3, type=float,
                         help='the learning rate for training') 
-    parser.add_argument('--dis_lr', default=3e-5, type=float,
+    parser.add_argument('--imi_lr', default=3e-5, type=float,
                         help='the learning rate for training')
  
     
@@ -184,8 +184,8 @@ def main(args):
         else:
             student = get_init_net(args)        
 
-        optimizer_int = optim.AdamW(student.parameters(), lr=args.dis_lr)
-        optimizer_imi = optim.AdamW(student.parameters(), lr=args.int_lr)
+        optimizer_int = optim.AdamW(student.parameters(), lr=args.int_lr)
+        optimizer_imi = optim.AdamW(student.parameters(), lr=args.imi_lr)
         # =========== Step1: imitation, skip in first gen
         if gen > 0:
             imitation_phase(args, student, teacher, optimizer_imi)
