@@ -12,15 +12,15 @@ eval_data = "tasks_test_simple"
 
 # ========= IL setting
 init_strategy = "nil"
-generations = 20
+generations = 10
 
 # ========= Training
 eval_interval = 500
-int_rounds = 5000
+int_rounds = 20000
 dis_rounds = 1000
-dis_loss = "ce_argmax"
-int_lr = 0.001
+dis_loss = "ce_sample"
+int_lr = 0.003
 imi_lr = 0.0001
 
 
-run_name = "nil_argmax"
+run_name = "nil_sample"

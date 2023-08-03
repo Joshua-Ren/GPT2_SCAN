@@ -48,7 +48,7 @@ def get_args_parser():
                     help='The number of updates for interaction phase, train set has >16k samples') 
     parser.add_argument('--int_rounds', type=int, default=10000,
                     help='The number of updates for interaction phase, train set has >16k samples')
-    parser.add_argument('--dis_rounds', type=int, default=500,
+    parser.add_argument('--dis_rounds', type=int, default=5000,
                     help='The number of updates for imitation phase, train set has >16k samples')
     parser.add_argument('--dis_loss', type=str, default='ce_sample',
                     help='how the teacher generate the samples, ce_argmax, ce_sample, noisy_ce_sample, mse')
@@ -67,7 +67,7 @@ def get_args_parser():
                         help='Whether save the model in the save-path') 
     parser.add_argument('--save_every_steps', default=10000, type=int,
                         help='gap between different savings')     
-    parser.add_argument('--run_name',default='mile_tiny',type=str)
+    parser.add_argument('--run_name',default='mile_tiny_longdis',type=str)
     parser.add_argument('--proj_name',default='P5_iICL_toy', type=str)
     return parser
 
