@@ -1,0 +1,25 @@
+# ====== Usuall default
+#seed = 10086
+proj_name = "P5_iICL_toy"
+
+# ==== Model related
+gpt_type = "standard"
+
+# ========= Data related
+train_data = "tasks_train_simple"
+eval_data = "tasks_test_simple"
+
+# ========= IL setting
+init_strategy = "nil"
+generations = 20
+
+# ========= Training
+eval_interval = 500
+int_rounds = 5000
+dis_rounds = 1000
+dis_loss = "ce_sample"
+dis_lr = 0.0001
+int_lr = 0.0001
+
+
+run_name = "nil_try"
