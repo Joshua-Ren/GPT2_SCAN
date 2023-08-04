@@ -23,4 +23,4 @@ int_lr = 0.001
 imi_lr = 0.0001
 
 
-run_name = "mile_smp_dis10"
+run_name = "mile_smp_dis1000"
