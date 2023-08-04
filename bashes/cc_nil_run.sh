@@ -1,5 +1,5 @@
 #!/bin/bash
-#SBATCH --account=rrg-dsuth
+#SBATCH --account=def-dsuth
 #SBATCH --gres=gpu:1              # Number of GPU(s) per node
 #SBATCH --cpus-per-task=4         # CPU cores/threads
 #SBATCH --mem=32000M               # memory per node
