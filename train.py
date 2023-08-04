@@ -28,7 +28,7 @@ def get_args_parser():
     parser.add_argument('--seed', default=0, type=int)
     
     # ========= Model related
-    parser.add_argument('--gpt_type',default='tiny',type=str,
+    parser.add_argument('--gpt_type',default='small',type=str,
                         help='what type of gpt2 we use, tiny, small, standard')
 
     # ========= Data related
@@ -40,15 +40,15 @@ def get_args_parser():
     # ========= IL setting
     parser.add_argument('--init_strategy', type=str, default='mile',
                     help='How to generate new student, nil or mile')
-    parser.add_argument('--generations', type=int, default=7,
+    parser.add_argument('--generations', type=int, default=1,
                         help='number of generations')
     
     # ========= Training
     parser.add_argument('--eval_interval', type=int, default=500,
                     help='The number of updates for interaction phase, train set has >16k samples') 
-    parser.add_argument('--int_rounds', type=int, default=10000,
+    parser.add_argument('--int_rounds', type=int, default=80000,
                     help='The number of updates for interaction phase, train set has >16k samples')
-    parser.add_argument('--dis_rounds', type=int, default=5000,
+    parser.add_argument('--dis_rounds', type=int, default=1,
                     help='The number of updates for imitation phase, train set has >16k samples')
     parser.add_argument('--dis_loss', type=str, default='ce_sample',
                     help='how the teacher generate the samples, ce_argmax, ce_sample, noisy_ce_sample, mse')
@@ -56,7 +56,7 @@ def get_args_parser():
                     help='Split ratio of the training set, sup/unsup')    
     parser.add_argument('--int_lr', default=1e-3, type=float,
                         help='the learning rate for training') 
-    parser.add_argument('--imi_lr', default=3e-5, type=float,
+    parser.add_argument('--imi_lr', default=1e-4, type=float,
                         help='the learning rate for training')
  
     
@@ -67,16 +67,16 @@ def get_args_parser():
                         help='Whether save the model in the save-path') 
     parser.add_argument('--save_every_steps', default=10000, type=int,
                         help='gap between different savings')     
-    parser.add_argument('--run_name',default='mile_tiny_longdis',type=str)
+    parser.add_argument('--run_name',default='base_small',type=str)
     parser.add_argument('--proj_name',default='P5_iICL_toy', type=str)
     return parser
 
 def get_acc(out_logi, y, split_idx):
-    pred = out_logi.argmax(-1)[split_idx-1:]
-    gt_y = y[split_idx-1:]
-    part_acc = (pred[:-1]==gt_y[:-1]).sum()/gt_y.shape[0]     # partial mapping counts
+    pred = out_logi.argmax(-1)[split_idx-1:-1]
+    gt_y = y[split_idx-1:-1]
+    part_acc = (pred==gt_y).sum()/gt_y.shape[0]     # partial mapping counts
     acc = part_acc.int()                            # See only complete correct predictions
-    return part_acc, acc          
+    return part_acc, acc 
 
 
 def interaction_phase(args, model, optimizer):
@@ -121,7 +121,7 @@ def imitation_phase(args, student, teacher, optimizer):
             loss = nn.MSELoss(reduction='mean')(stud_logits, teach_logits)
         else:
             if args.dis_loss == 'ce_argmax':
-                sample_y = teach_logits.argmax(-1)          
+                sample_y = teach_logits.argmax(-1)
             elif args.dis_loss == 'ce_sample':
                 sampler = torch.distributions.categorical.Categorical(nn.Softmax(-1)(teach_logits))
                 sample_y = sampler.sample().long()
@@ -129,7 +129,8 @@ def imitation_phase(args, student, teacher, optimizer):
                 epsilon = torch.randn_like(teach_logits)
                 sampler = torch.distributions.categorical.Categorical(nn.Softmax(-1)(teach_logits+epsilon))
                 sample_y = sampler.sample().long()                
-            teach_label = torch.cat([x[1:split_idx], sample_y[split_idx:], EOS_TENSOR])  
+            teach_label = torch.cat([x[1:split_idx], sample_y[split_idx-1:-1], EOS_TENSOR])  
+            #teach_label = torch.cat(sample_y[:-1], EOS_TENSOR])  
             loss = nn.CrossEntropyLoss()(stud_logits, teach_label)
         loss.backward()
         optimizer.step()
@@ -170,7 +171,6 @@ def main(args):
     if args.WD_ID!='none':
         wandb_init(proj_name=args.proj_name, run_name=args.run_name, config_args=args)
     
-    
     gens_valid_roc, gens_test_roc = [], []
     for gen in range(args.generations):
         # =========== Step0: new agent
@@ -195,6 +195,9 @@ def main(args):
         teacher = copy.deepcopy(student)
     if args.WD_ID!='none':
         wandb.finish()
+    SAVE_PATH = os.path.join('./results', args.run_name+'.pt')
+    torch.save(student.state_dict(), SAVE_PATH)
+    return student
 
 
 if __name__ == "__main__":
@@ -205,16 +208,17 @@ if __name__ == "__main__":
         config = toml.load(os.path.join("configs",args.config_file+".toml"))
         args = update_args(args, config)
     EOS_TENSOR = torch.tensor([23]).to(args.device)
-    main(args)
-
+    model = main(args)
+    
+    #model.load_state_dict(torch.load('test.pt'))
     """ 
-    model = build_model(args)
+    model = get_init_net(args)
     optimizer_int = torch.optim.Adam(model.parameters(), lr=args.lr)
     for i in range(5):
         interaction_phase(args, model, optimizer_int)
         evaluate(args, model)
     #teacher = copy.deepcopy(model)
-    #model = build_model(args)
+    #model = get_init_net(args)
     #optimizer_imi = torch.optim.Adam(model.parameters(), lr=args.lr)
     #imitation_phase(args, model, teacher, optimizer_imi)
     #part_acc, acc = evaluate(args, model)    
