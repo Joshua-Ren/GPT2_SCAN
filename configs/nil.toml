@@ -17,10 +17,10 @@ generations = 7
 # ========= Training
 eval_interval = 500
 int_rounds = 400000
-dis_rounds = 10000
+dis_rounds = 1000
 dis_loss = "ce_sample"
 int_lr = 0.001
 imi_lr = 0.0001
 
-run_name = "mile_smp_dis10000"
+run_name = "mile_smp_dis1000"
 #run_name = "baseline"
