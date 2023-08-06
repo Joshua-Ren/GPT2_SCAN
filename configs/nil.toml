@@ -12,15 +12,15 @@ eval_data = "tasks_test_simple"
 
 # ========= IL setting
 init_strategy = "mile"
-generations = 20
+generations = 1
 
 # ========= Training
 eval_interval = 500
-int_rounds = 40000
+int_rounds = 800000#40000
 dis_rounds = 1000
 dis_loss = "ce_sample"
 int_lr = 0.001
 imi_lr = 0.0001
 
-run_name = "mile_smp_dis1000"
-#run_name = "baseline"
+#run_name = "mile_smp_dis1000"
+run_name = "baseline"
