@@ -20,7 +20,7 @@ int_rounds = 80000
 dis_rounds = 100
 dis_loss = "ce_sample"
 int_lr = 0.001
-imi_lr = 0.0001
+imi_lr = 0.00001
 
-run_name = "mile_smp_dis100_int80k"
+run_name = "mile_smp_dis5000_slr_int80k"
 #run_name = "baseline"
